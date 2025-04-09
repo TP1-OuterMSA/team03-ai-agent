@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}메인페이지{% endblock %}
+
+{% block content %}
+<div">
+  <a href="{% url 'llmchatbot:test' %}">
+    테스트 바로가기
+  </a>
+</div>
+{% endblock %}
