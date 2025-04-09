@@ -11,7 +11,7 @@ def test(req):
 
 def request_test(request):
     if request.method == 'GET':
-        return JsonResponse({'message': 'request success!'})
+        return JsonResponse({'message': 'request success! cicd'})
     else:
         return JsonResponse({'error': 'GET 요청만 허용됩니다.'}, status=405)
 
