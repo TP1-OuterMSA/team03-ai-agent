@@ -22,10 +22,10 @@ COPY . .
 RUN echo '#!/bin/bash\n\
 python generate_secrets.py\n\
 python manage.py collectstatic --noinput\n\
-gunicorn --bind 0.0.0.0:8000 config.wsgi:application\n\
+gunicorn --bind 0.0.0.0:8080 config.wsgi:application\n\
 ' > start.sh && \
 chmod +x start.sh
 
 # 서비스 실행
-EXPOSE 8000
+EXPOSE 8080
 CMD ["./start.sh"]
