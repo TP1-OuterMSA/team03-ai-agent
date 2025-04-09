@@ -9,7 +9,7 @@ from .health import health_check
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('team3/llmchatbot/', include('llmchatbot.urls')),
+    path('api/team3/llmchatbot/', include('llmchatbot.urls')),
     path('',  TemplateView.as_view(template_name="main.html"), name="root"),
     path('actuator/health/', health_check),
 ]
