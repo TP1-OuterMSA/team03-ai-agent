@@ -4,6 +4,9 @@ from django.conf import settings
 from openai import OpenAI
 import json
 from django.views.decorators.csrf import csrf_exempt
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.decorators import api_view
+from drf_yasg import openapi
 
 # Create your views here.
 def test(req):
@@ -44,6 +47,26 @@ def chat_with_openai(request):
     else:
         return JsonResponse({'error': 'POST 요청만 허용됩니다.'}, status=405)
     
+
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['food_name'],
+        properties={
+            'food_name': openapi.Schema(type=openapi.TYPE_STRING, description='수정할 음식 이름')
+        }
+    ),
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'food_name': openapi.Schema(type=openapi.TYPE_STRING)
+            }
+        )
+    }
+)
+@api_view(['POST'])
 @csrf_exempt
 def correct(request):
     if request.method == 'POST':
@@ -99,6 +122,28 @@ def correct(request):
     
     return JsonResponse({"error": "POST 요청만 허용됩니다"}, status=405)
 
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['food_name'],
+        properties={
+            'food_name': openapi.Schema(type=openapi.TYPE_STRING, description='음식 이름')
+        }
+    ),
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'category': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["RICE", "NOODLE", "SOUP", "SIDE", "MAIN", "DESSERT"]
+                )
+            }
+        )
+    }
+)
+@api_view(['POST'])
 @csrf_exempt
 def categorization(request):
     if request.method == 'POST':
