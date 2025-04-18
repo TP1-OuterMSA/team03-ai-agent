@@ -23,8 +23,8 @@ OPENAI_API = get_secrets("OPENAIAPI")
 
 DEBUG = True
 ALLOWED_HOSTS = ['*']
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = ['*']
+CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOWED_ORIGINS = ['*']
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -34,15 +34,34 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "llmchatbot",
+    'rest_framework',
     'drf_yasg',
 ]
 
 ### swagger settings
+
+import os
+
+# 환경 변수로 구분 (로컬/배포 환경)
+is_kubernetes = os.environ.get('KUBERNETES_SERVICE_HOST') is not None
+
+if is_kubernetes:
+    # 배포 환경
+    FORCE_SCRIPT_NAME = '/api/team3/llmchatbot'
+    STATIC_URL = '/api/team3/llmchatbot/static/'
+else:
+    # 로컬 환경 - 경로 강제 설정 제거
+    FORCE_SCRIPT_NAME = None
+    STATIC_URL = '/static/'
+
 SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,
     'SECURITY_DEFINITIONS': None,
     'LOGIN_URL': None,
     'LOGOUT_URL': None,
+    'SWAGGER_UI_DIST': 'https://unpkg.com/swagger-ui-dist@3.52.5',
+    'VALIDATOR_URL': None,
+    'USE_LOCAL_FILES': False,
 }
 
 REST_FRAMEWORK = {
@@ -135,7 +154,7 @@ USE_I18N = True
 USE_TZ = False
 TIME_ZONE = 'Asia/Seoul'
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = "static/"
+# STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
