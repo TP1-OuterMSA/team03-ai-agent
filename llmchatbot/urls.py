@@ -5,6 +5,8 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
+app_name = "llmchatbot"
+
 schema_view = get_schema_view(
     openapi.Info(
         title="Team3 - llm 및 rag기술을 활용한 ai 서비스 api",
@@ -18,16 +20,16 @@ schema_view = get_schema_view(
     permission_classes=[permissions.AllowAny],
 )
 
-
-app_name = "llmchatbot"
-
-
 urlpatterns = [
+    ### test api
     path('test/', test, name="test"),
     path('request_test/', request_test, name="request_test"),
     path('chat_with_openai/', chat_with_openai, name="chat_with_openai"),
+    ### MS팀 ai 솔루션 api
     path('correct/', correct, name="correct"),
     path('categorization/', categorization, name="categorization"),
+    ### ai 리포트
+    path('create_report/', create_report, name='create_report'),
     # Swagger URL
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
