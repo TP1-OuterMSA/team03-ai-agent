@@ -22,7 +22,7 @@ COPY . .
 RUN echo '#!/bin/bash\n\
 python generate_secrets.py\n\
 python manage.py collectstatic --noinput\n\
-gunicorn --bind 0.0.0.0:8080 config.wsgi:application\n\
+gunicorn --bind 0.0.0.0:8080 --workers 4 --timeout 300 config.wsgi:application\n\
 ' > start.sh && \
 chmod +x start.sh
 
