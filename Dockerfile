@@ -11,6 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# MySQL 클라이언트 라이브러리 추가
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    default-libmysqlclient-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 # 스크립트 파일 복사 및 권한 설정
 COPY generate_secrets.py .
 RUN chmod +x generate_secrets.py
