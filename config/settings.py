@@ -98,26 +98,26 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': get_secrets('ENGINE'),
-        'NAME': get_secrets('NAME'),
-        'USER': get_secrets('USER'),
-        'PASSWORD': get_secrets('PASSWORD'),
-        'HOST': get_secrets('HOST'),
-        'PORT': get_secrets('PORT'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
-    }
-}
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
+#         'ENGINE': get_secrets('ENGINE'),
+#         'NAME': get_secrets('NAME'),
+#         'USER': get_secrets('USER'),
+#         'PASSWORD': get_secrets('PASSWORD'),
+#         'HOST': get_secrets('HOST'),
+#         'PORT': get_secrets('PORT'),
+#         'OPTIONS': {
+#             'charset': 'utf8mb4',
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         },
 #     }
 # }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
