@@ -1,22 +1,27 @@
 import os
 import json
-import sys
 
-# 환경 변수에서 시크릿 값 가져오기
-secret_key = os.environ.get('DJANGO_SECRET', '')
-openai_api = os.environ.get('OPENAI_API', '')
+secret_key = os.environ.get('django-secret', '')
+openai_api = os.environ.get('openai-api-key', '')
 
-if not secret_key or not openai_api:
-    print("Error: Required environment variables DJANGO_SECRET or OPENAI_API not set.")
-    sys.exit(1)
+db_engine = os.environ.get('db-engine', '')
+db_name = os.environ.get('db-name', '')
+db_user = os.environ.get('db-user', '')
+db_password = os.environ.get('db-password', '')
+db_host = os.environ.get('db-host', '')
+db_port = os.environ.get('db-port', '')
 
-# secrets.json 파일 생성
 secrets = {
     "SECRET": secret_key,
-    "OPENAIAPI": openai_api
+    "OPENAIAPI": openai_api,
+    "ENGINE": db_engine,
+    "NAME": db_name,
+    "USER": db_user,
+    "PASSWORD": db_password,
+    "HOST": db_host,
+    "PORT": db_port
 }
 
-# 파일에 저장
 with open('secrets.json', 'w') as f:
     json.dump(secrets, f)
 

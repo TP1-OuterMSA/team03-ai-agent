@@ -30,6 +30,8 @@ urlpatterns = [
     path('categorization/', categorization, name="categorization"),
     ### ai 리포트
     path('create_report/', create_report, name='create_report'),
+    ### ai 챗봇
+    path('db_test/', db_test, name='db_test'),
     # Swagger URL
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
