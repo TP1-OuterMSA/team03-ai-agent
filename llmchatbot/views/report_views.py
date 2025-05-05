@@ -271,9 +271,6 @@ def chat_with_openai(request):
 
 @csrf_exempt
 def create_report(request):
-    """
-    Endpoint to receive school lunch report data from Spring Boot and generate a comprehensive report
-    """
     if request.method == 'POST':
         try:
             request_body = request.body.decode('utf-8')
@@ -317,9 +314,6 @@ def create_report(request):
     return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
 
 def generate_markdown_report(data):
-    """
-    OpenAI API를 활용하여 급식 데이터 기반 마크다운 보고서를 생성합니다.
-    """
     try:
         period_data = data.get('period_data', '기간 정보 없음')
         menu_evaluation_data = data.get('menu_evaluation_data', '')
@@ -340,9 +334,10 @@ def generate_markdown_report(data):
 4. 보고서는 5개 섹션으로 구성하며, 각 섹션은 헤딩과 구분선으로 명확히 분리하세요.
 5. 모든 분석은 데이터에 기반하여 작성하되, 필요한 경우 영양학적 지식을 활용하여 보완하세요.
 6. 보고서는 상세하고 정성껏 작성하며, 최소 1000단어 이상이 되도록 충실하게 분석하세요.
-7. 각 섹션마다 요약 및 권장사항을 포함하여 실질적인 개선점을 제시하세요.
+7. 각 섹션마다 요약 및 권장사항을 포함하여 피드백데이터를 기반해서 실질적인 개선점을 제시하세요.
 
 보고서 작성 시 각 섹션을 빠짐없이 포함하고, 데이터에 기반한 깊이 있는 분석을 제공하세요.
+(중요!) 절대로 지어내서는 안되며 거짓정보를 작성하면 안됩니다. 꼭 주어진 데이터를 기반으로 해서만 보고서를 작성하세요!
 """
 
         user_prompt = f"""
@@ -369,6 +364,7 @@ def generate_markdown_report(data):
    - 음식별 강점과 개선점을 분석하세요.
    - 특히 주목할 만한 음식(매우 좋거나 나쁜 평가)을 강조하세요.
    - 전체 음식에 대한 종합적인 전문가 피드백을 제공하세요.
+   - 전반적으로 불만이 있는 피드백을 위주로 완벽 분석하세요.
 
 4. **제공된 음식 목록**:
    - 모든 음식을 마크다운 표 형식으로 정리하세요.
@@ -380,6 +376,7 @@ def generate_markdown_report(data):
    - 영양학적 관점에서 급식의 품질을 평가하세요.
    - 학생 만족도와 영양 균형에 대한 종합적인 결론을 제시하세요.
    - 향후 개선을 위한 구체적인 권장사항을 제안하세요.
+   - 불만적인 피드백을 기반 어떻게 개선하면 좋을지도 작성하세요.
 
 보고서는 마크다운 형식으로 작성하되, 다음 요소를 반드시 포함하세요:
 - 섹션별 헤딩(#, ##, ### 등)
@@ -391,12 +388,13 @@ def generate_markdown_report(data):
 - 다양한 이모지
 
 매우 상세하고 정성스럽게 작성하여, 실질적인 가치가 있는 보고서를 만들어주세요. 각 섹션이 충분히 길고 분석이 깊이 있게 이루어지도록 작성해주세요.
+(중요!) 절대로 지어내서는 안되며 거짓정보를 작성하면 안됩니다. 꼭 주어진 데이터를 기반으로 해서만 보고서를 작성하세요!
 """
 
 
         client = OpenAI(api_key=settings.OPENAI_API)
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
