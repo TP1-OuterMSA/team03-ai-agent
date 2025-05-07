@@ -26,6 +26,29 @@ ALLOWED_HOSTS = ['*']
 CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOWED_ORIGINS = ['*']
 
+# 원래는 이거....
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:8000",
+#     "http://3.37.12.249",
+#     "https://3.37.12.249",
+#     "https://marueggserver.com",
+#     "http://marueggllmserver.com",
+#     "https://marueggllmserver.com",
+#     "https://maru-egg-fe.vercel.app",
+# ]
+
+# CSRF_TRUSTED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:8000",
+#     "http://3.37.12.249",
+#     "https://3.37.12.249",
+#     "https://marueggserver.com"
+#     "http://marueggllmserver.com",
+#     "https://marueggllmserver.com",
+#     "https://maru-egg-fe.vercel.app",
+# ]
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
