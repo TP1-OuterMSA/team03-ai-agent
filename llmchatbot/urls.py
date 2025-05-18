@@ -28,6 +28,7 @@ urlpatterns = [
     ### MS팀 ai 솔루션 api
     path('correct/', correct, name="correct"),
     path('categorization/', categorization, name="categorization"),
+    path('detail_categorization/', detail_categorization, name="detail_categorization"),
     ### ai 리포트
     path('create_report/', create_report, name='create_report'),
     ### ai 챗봇
