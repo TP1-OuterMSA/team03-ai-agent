@@ -202,6 +202,126 @@ def categorization(request):
     
     return JsonResponse({"error": "POST 요청만 허용됩니다"}, status=405)
 
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['food_name'],
+        properties={
+            'food_name': openapi.Schema(type=openapi.TYPE_STRING, description='음식 이름')
+        }
+    ),
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'mealCategory': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["RICE", "NOODLE", "SOUP", "SIDE", "MAIN", "DESSERT"]
+                ),
+                'calorie_kcal': openapi.Schema(type=openapi.TYPE_NUMBER),
+                'carb_g': openapi.Schema(type=openapi.TYPE_NUMBER),
+                'protein_g': openapi.Schema(type=openapi.TYPE_NUMBER),
+                'fat_g': openapi.Schema(type=openapi.TYPE_NUMBER),
+                'foodWeight': openapi.Schema(type=openapi.TYPE_STRING)
+            }
+        )
+    }
+)
+@api_view(['POST'])
+@csrf_exempt
+def detail_categorization(request):
+    if request.method == 'POST':
+        try:
+            client = OpenAI(api_key=settings.OPENAI_API)
+            data = json.loads(request.body)
+            food_name = data.get('food_name', '')
+            if not food_name:
+                return JsonResponse({"error": "food_name is required"}, status=400)
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """당신은 한국 음식의 영양 정보를 분석하는 도우미입니다.
+                        주어진 한국 음식 이름을 보고 다음 정보를 제공하세요:
+                        
+                        1. mealCategory: 다음 카테고리 중 하나로 분류
+                        "RICE" (밥, 볶음밥 등 밥 위주 음식)
+                        "NOODLE" (면 위주 음식: 국수, 라면, 파스타 등)
+                        "SOUP" (국물 위주 음식: 찌개, 탕, 국 등)
+                        "SIDE" (반찬류: 김치, 나물, 장아찌 등)
+                        "MAIN" (주요리: 고기 요리, 찜, 구이 등)
+                        "DESSERT" (디저트, 간식류: 떡, 과자, 빵 등)
+                        
+                        2. calorie_kcal: 해당 음식의 예상 1인분 칼로리 (kcal 단위의 숫자)
+                        3. carb_g: 해당 음식의 예상 1인분 탄수화물 함량 (g 단위의 숫자)
+                        4. protein_g: 해당 음식의 예상 1인분 단백질 함량 (g 단위의 숫자)
+                        5. fat_g: 해당 음식의 예상 1인분 지방 함량 (g 단위의 숫자)
+                        6. foodWeight: 해당 음식의 일반적인 1인분 무게 (예: "300g")
+                        7. allergy: 해당 음식에 대한 알러지 정보(예: "대두, 밀", "땅콩")
+                        
+                        각 항목에 대해 해당 음식에 적합한 값을 추정하여 제공하세요.
+                        특히 영양소 수치는 한국 영양학회나 식품의약품안전처 등의 공식 자료를 기반으로 
+                        합리적인 범위 내에서 추정하세요. 신뢰할 수 있는 영양 데이터를 제공해야 합니다.
+                        반드시 정확한 JSON 형식으로만 응답하세요."""
+                    },
+                    {
+                        "role": "user",
+                        "content": food_name
+                    }
+                ],
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "food_details",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "mealCategory": {
+                                    "type": "string",
+                                    "enum": ["RICE", "NOODLE", "SOUP", "SIDE", "MAIN", "DESSERT"]
+                                },
+                                "calorie_kcal": {
+                                    "type": "number"
+                                },
+                                "carb_g": {
+                                    "type": "number"
+                                },
+                                "protein_g": {
+                                    "type": "number"
+                                },
+                                "fat_g": {
+                                    "type": "number"
+                                },
+                                "foodWeight": {
+                                    "type": "string"
+                                },
+                                "allergy": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": ["mealCategory", "calorie_kcal", "carb_g", "protein_g", "fat_g", "foodWeight", "allergy"],
+                            "additionalProperties": False
+                        }
+                    }
+                },
+                max_tokens=200
+            )
+            
+            return JsonResponse(json.loads(response.choices[0].message.content))
+            
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "올바르지 않은 JSON 형식입니다"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"error": "POST 요청만 허용됩니다"}, status=405)
+
+
+
 # @csrf_exempt
 # def create_report(request):
 #     """
