@@ -532,3 +532,107 @@ def generate_markdown_report(data):
     except Exception as e:
         logger.error(f"보고서 생성 중 오류 발생: {str(e)}")
         return f"보고서 생성 중 오류가 발생했습니다: {str(e)}"
+    
+
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['foodName', 'evaluations'],
+        properties={
+            'foodName': openapi.Schema(type=openapi.TYPE_STRING, description='음식 이름'),
+            'evaluations': openapi.Schema(
+                type=openapi.TYPE_ARRAY, 
+                items=openapi.Schema(type=openapi.TYPE_STRING),
+                description='학생들의 평가 리스트'
+            ),
+        },
+    ),
+    responses={
+        200: openapi.Response(
+            description='요약 성공',
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'food_name': openapi.Schema(type=openapi.TYPE_STRING, description='음식 이름'),
+                    'summary': openapi.Schema(type=openapi.TYPE_STRING, description='마크다운 형식의 상세 분석'),
+                    'evaluation_count': openapi.Schema(type=openapi.TYPE_INTEGER, description='평가 개수'),
+                },
+            ),
+        ),
+        400: '잘못된 요청',
+        500: '서버 오류',
+    },
+    operation_summary='음식 평가 상세 분석',
+    operation_description='학생들의 음식 평가를 AI를 통해 분석하고 마크다운 형식으로 상세 보고서를 생성합니다'
+)
+@csrf_exempt
+@api_view(['POST'])
+def detail_food_analyze(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            food_name = data.get('foodName', '')
+            evaluations = data.get('evaluations', [])
+            
+            if not food_name or not evaluations:
+                return JsonResponse({'error': '음식명 또는 평가 데이터가 제공되지 않았습니다.'}, status=400)
+            
+            evaluation_text = "\n".join(evaluations)
+            
+            prompt = f"""
+            다음은 '{food_name}'에 대한 학생들의 평가 데이터입니다:
+
+            {evaluation_text}
+
+            위 평가 데이터를 기반으로 마크다운(.md) 형식으로 다음 섹션별로 구분하여 정성스럽게 작성해주세요:
+
+            ## 📊 피드백 통계
+            - 피드백 수: {len(evaluations)}개
+            - 이 음식에 대한 평가 데이터의 수량과 특성을 상세히 설명해주세요.
+            - 평가의 양과 질에 대해 분석해주세요.
+
+            ## 📝 전체 피드백 분석
+            - 쌓인 모든 평가 피드백을 종합적으로 분석하여 설명해주세요.
+            - 공통적으로 언급되는 부분, 주요 의견, 긍정적/부정적 피드백 등을 포함해주세요.
+            - 적절한 소제목과 구분을 사용하여 내용을 구조화해주세요.
+            - 각 의견의 빈도나 중요도를 언급해주세요.
+
+            ## ✨ 요약
+            - 학생들의 피드백을 간결하게 요약해주세요.
+            - 핵심 포인트만 추려서 설명해주세요.
+            - 불릿 포인트를 활용해 명확하게 정리해주세요.
+
+            ## 👨‍🍳 전문가 의견
+            - 급식 전문가로서 이 음식에 대한 의견과 개선점을 제안해주세요.
+            - 학생들의 피드백을 기반으로 구체적인 조언을 주세요.
+            - 맛, 영양, 조리법, 제공 방식 등 다양한 측면에서 조언을 제공해주세요.
+            - 타 학교 사례나 전문적 지식을 바탕으로 한 조언도 추가해주세요.
+
+            각 섹션은 풍부한 내용(최소 100자 이상)으로 작성하고, 적절한 이모지를 적극 활용해서 시각적으로 보기 좋게 작성해주세요.
+            학생들의 실제 피드백에 기반하여 작성하고, 피드백에 없는 내용은 지어내지 마세요.
+            마크다운 형식을 제대로 사용하여 가독성을 높여주세요(제목, 부제목, 굵은 글씨, 이탤릭체, 불릿 포인트 등 다양하게 활용).
+            """
+            
+            client = OpenAI(api_key=settings.OPENAI_API)
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "당신은 학교 급식 분석 전문가입니다. 학생들의 피드백을 분석하여 마크다운 형식으로 구조화된 응답을 제공합니다. 각 섹션을 명확히 구분하고 이모지를 적절히 사용해 시각적으로 보기 좋게 작성하세요. 실제 데이터에 기반한 분석만 제공하고, 없는 정보는 지어내지 마세요. 충분히 길고 상세하게 작성해주세요."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            summary = response.choices[0].message.content
+            
+            return JsonResponse({
+                'food_name': food_name,
+                'summary': summary,
+                'evaluation_count': len(evaluations)
+            })
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'POST 요청만 허용됩니다.'}, status=405)
