@@ -29,6 +29,7 @@ urlpatterns = [
     path('correct/', correct, name="correct"),
     path('categorization/', categorization, name="categorization"),
     path('detail_categorization/', detail_categorization, name="detail_categorization"),
+    path('detail_food_analyze/', detail_food_analyze, name='detail_food_analyze'),
     ### ai 리포트
     path('create_report/', create_report, name='create_report'),
     ### ai 챗봇
