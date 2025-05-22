@@ -35,6 +35,7 @@ urlpatterns = [
     ### ai 챗봇
     path('db_test/', db_test, name='db_test'),
     path('basic_chatbot_request/', basic_chatbot_request, name='basic_chatbot_request'),
+    path('agent_chatbot_request/', agent_chatbot_request, name='agent_chatbot_request'),
     # Swagger URL
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
