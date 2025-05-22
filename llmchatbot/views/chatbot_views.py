@@ -209,3 +209,176 @@ def db_test(request):
         return JsonResponse({'message': 'request success! - chatbot'})
     else:
         return JsonResponse({'error': 'GET 요청만 허용됩니다.'}, status=405)
+    
+
+### agent화
+def determine_category(question):
+    """OpenAI API를 통해 질문의 카테고리 결정"""
+    try:
+        prompt = f"""당신은 학교 급식 관련 질문을 분류하는 전문가입니다. 
+사용자 질문을 분석하여 다음 두 가지 카테고리 중 하나를 선택해주세요:
+
+1. FOOD_INFO: 음식 자체에 관한 영양소, 칼로리, 알러지 정보 등 음식 자체의 특성에 관한 질문
+2. FOOD_FEEDBACK_INFO: 음식에 대한 학생들의 평가, 점수, 피드백 등 학생들의 반응에 관한 질문
+
+사용자 질문: {question}
+
+다음 JSON 형식으로만 응답해주세요:
+{{
+  "category": "선택한 카테고리(FOOD_INFO 또는 FOOD_FEEDBACK_INFO)",
+  "reasoning": "왜 이 카테고리를 선택했는지에 대한 추론 과정"
+}}
+
+추론 과정은 단계별로 작성해주시고, 질문의 특징과 관련된 키워드를 분석하여 설명해주세요.
+"""
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that categorizes questions about school lunch."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=500
+        )
+        
+        result = response.choices[0].message.content
+        try:
+            import re
+            json_match = re.search(r'({[\s\S]*})', result)
+            if json_match:
+                result = json_match.group(0)
+            
+            category_data = json.loads(result)
+            category = category_data.get("category")
+            reasoning = category_data.get("reasoning")
+            
+            if reasoning:
+                if isinstance(reasoning, list):
+                    reasoning.append(f"CoT: 사용자 질문을 추론한 것 기반, [{category}] 카테고리로 설정하여 해당 백터db로 검색을 진행함.")
+                else:
+                    reasoning = f"{reasoning}\n\nCoT: 사용자 질문을 추론한 것 기반, [{category}] 카테고리로 설정하여 해당 백터db로 검색을 진행함."
+            
+            return category, reasoning
+            
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse category JSON from OpenAI response: {result}")
+            default_category = "FOOD_INFO"
+            default_reasoning = f"Failed to parse category. Using default. Original response: {result}\n\n따라서, 사용자 질문을 추론하였을때 [{default_category}] 카테고리로 설정하여 해당 백터db로 검색을 진행합니다."
+            return default_category, default_reasoning
+        
+    except Exception as e:
+        logger.error(f"Error determining category: {str(e)}")
+        default_category = "FOOD_INFO"
+        default_reasoning = f"Error determining category: {str(e)}. Using default category.\n\n따라서, 사용자 질문을 추론하였을때 [{default_category}] 카테고리로 설정하여 해당 백터db로 검색을 진행합니다."
+        return default_category, default_reasoning
+
+@csrf_exempt
+@api_view(['POST'])
+@swagger_auto_schema(
+    operation_summary="agent chatbot request without category",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'question': openapi.Schema(type=openapi.TYPE_STRING, description="Question for the chatbot")
+        },
+        required=['question']
+    )
+)
+def agent_chatbot_request(request):
+    try:
+        if not request.body:
+            logger.error("빈 요청 본문이 수신되었습니다")
+            return JsonResponse({"error": "빈 요청 본문"}, status=400)
+        
+        try:
+            if hasattr(request, 'data'):
+                data = request.data
+            else:
+                data = json.loads(request.body)
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON 디코드 오류: {str(e)}")
+            return JsonResponse({"error": f"유효하지 않은 JSON 형식: {str(e)}"}, status=400)
+        
+        question = data.get('question')
+        
+        logger.info(f"에이전트 챗봇 질문: {question}")
+        
+        if not question:
+            return JsonResponse({"error": "Question is required"}, status=400)
+        
+        # 카테고리 결정
+        category, reasoning = determine_category(question)
+        logger.info(f"결정된 카테고리: {category}, 추론: {reasoning}")
+        
+        if category == "FOOD_INFO":
+            try:
+                response = requests.get(f"{SPRINGBOOT_BASE_URL}/food-info")
+                
+                if response.status_code == 200:
+                    food_data = response.json()
+
+                    food_vector_db.add_documents(food_data)
+
+                    relevant_docs = food_vector_db.search(question, top_k=10)
+
+                    prompt = create_prompt_for_food_info(question, relevant_docs)
+                    ai_response = get_openai_response(prompt)
+
+                    if isinstance(reasoning, list):
+                        reasoning = "\n".join(reasoning)
+                    
+                    return JsonResponse({
+                        "message": "성공했습니다",
+                        "answer": ai_response,
+                        "relevant_documents": relevant_docs[:5],
+                        "chainOfThought": reasoning
+                    })
+                else:
+                    logger.error(f"Failed to retrieve food info: {response.status_code}")
+                    return JsonResponse({"error": "Failed to retrieve food information"}, status=500)
+            except requests.RequestException as e:
+                logger.error(f"Request exception when fetching food info: {str(e)}")
+                return JsonResponse({"error": f"Error connecting to Spring Boot: {str(e)}"}, status=500)
+        
+        elif category == "FOOD_FEEDBACK_INFO":
+            try:
+                response = requests.get(f"{SPRINGBOOT_BASE_URL}/feedback-info")
+                
+                if response.status_code == 200:
+                    feedback_data = response.json()
+
+                    feedback_vector_db.add_documents(feedback_data)
+
+                    relevant_docs = feedback_vector_db.search(question, top_k=10)
+
+                    prompt = create_prompt_for_feedback_info(question, relevant_docs)
+                    ai_response = get_openai_response(prompt)
+
+                    if isinstance(reasoning, list):
+                        reasoning = "\n".join(reasoning)
+                    
+                    return JsonResponse({
+                        "message": "성공했습니다",
+                        "answer": ai_response,
+                        "relevant_documents": relevant_docs[:5],
+                        "chainOfThought": reasoning
+                    })
+                else:
+                    logger.error(f"Failed to retrieve feedback info: {response.status_code}")
+                    return JsonResponse({"error": "Failed to retrieve feedback information"}, status=500)
+            except requests.RequestException as e:
+                logger.error(f"Request exception when fetching feedback info: {str(e)}")
+                return JsonResponse({"error": f"Error connecting to Spring Boot: {str(e)}"}, status=500)
+        
+        else:
+            return JsonResponse({
+                "error": "Invalid category determined", 
+                "determined_category": category,
+                "reasoning": reasoning
+            }, status=400)
+    
+    except Exception as e:
+        logger.error(f"Unhandled exception in agent chatbot: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JsonResponse({"error": f"Error processing request: {str(e)}"}, status=500)
