@@ -20,6 +20,8 @@ def get_secrets(setting, secrets_dict=secrets):
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secrets('SECRET')
 OPENAI_API = get_secrets("OPENAIAPI")
+# SPRINGBOOT_BASE_URL = "http://localhost:8080/api/team3/analytics/chatbot"
+SPRINGBOOT_BASE_URL = "http://k8s-msaservices-7d023f0bb9-676035063.ap-northeast-2.elb.amazonaws.com/api/team3/analytics/chatbot"
 
 DEBUG = True
 ALLOWED_HOSTS = ['*']
