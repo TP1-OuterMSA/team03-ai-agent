@@ -215,6 +215,165 @@ def categorization(request):
         200: openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
+                'main_category': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["RICE", "NOODLE", "SOUP", "SIDE", "MAIN", "DESSERT"],
+                    description='메인 카테고리'
+                ),
+                'sub_category': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='서브 카테고리'
+                )
+            }
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'error': openapi.Schema(type=openapi.TYPE_STRING)
+            }
+        ),
+        500: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'error': openapi.Schema(type=openapi.TYPE_STRING)
+            }
+        )
+    }
+)
+@api_view(['POST'])
+@csrf_exempt
+def categorization_v2(request):
+    if request.method == 'POST':
+        try:
+            client = OpenAI(api_key=settings.OPENAI_API)
+            data = json.loads(request.body)
+            food_name = data.get('food_name', '')
+            if not food_name:
+                return JsonResponse({"error": "food_name is required"}, status=400)
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """당신은 한국 음식을 분류하는 도우미입니다.
+                        주어진 한국 음식 이름을 보고 메인 카테고리와 서브 카테고리로 분류하세요.
+
+                        메인 카테고리: "RICE", "NOODLE", "SOUP", "SIDE", "MAIN", "DESSERT"
+
+                        서브 카테고리는 다음과 같습니다:
+
+                        RICE:
+                        - WHITE_RICE: 흰쌀밥
+                        - MIXED_GRAIN_RICE: 잡곡밥
+                        - FRIED_RICE: 볶음밥
+                        - SPECIAL_RICE: 김밥, 주먹밥, 비빔밥 등
+
+                        NOODLE:
+                        - COLD_NOODLE: 냉면, 물냉면, 비빔냉면 등
+                        - HOT_NOODLE: 온면, 잔치국수, 멸치국수 등
+                        - STIR_FRIED_NOODLE: 볶음면, 짜장면, 짬뽕 등
+                        - SOUP_NOODLE: 라면, 우동 등
+
+                        SOUP:
+                        - CLEAR_SOUP: 미역국, 북어국 등
+                        - SPICY_SOUP: 김치찌개, 육개장 등
+                        - STEW: 된장찌개, 순두부찌개
+                        - MEAT_SOUP: 설렁탕, 갈비탕
+                        - FISH_SOUP: 대구탕, 매운탕
+
+                        SIDE:
+                        - KIMCHI_VARIANT: 배추김치, 총각김치 등
+                        - NAMUL: 시금치나물, 고사리 등
+                        - PICKLED: 오이지, 깍두기 등
+                        - EGG_BASED: 계란말이, 계란찜 등
+                        - TOFU_OR_BEAN: 두부조림, 콩자반 등
+                        - SMALL_MEAT: 소고기장조림, 소세지볶음 등
+
+                        MAIN:
+                        - MEAT: 제육볶음, 불고기, 돈까스 등
+                        - POULTRY: 닭갈비, 닭튀김 등
+                        - FISH: 고등어조림, 생선구이 등
+                        - FRIED: 치킨가라아게, 탕수육, 돈까스 등
+                        - STEAMED_OR_BOILED: 갈비찜, 코다리조림 등
+                        - VEGETARIAN_MAIN: 두부스테이크, 야채볶음 등
+
+                        DESSERT:
+                        - FRUIT: 바나나, 사과 등
+                        - DAIRY: 요구르트, 푸딩
+                        - BAKED: 단팥빵, 카스테라, 크림빵 등
+                        - BEVERAGE: 쥬스, 식혜 등
+
+                        음식 이름에 가장 적합한 메인 카테고리와 서브 카테고리를 반환하고 다른 설명은 포함하지 마세요.
+                        주의) 반환은 무조건 위에서 정의한 카테고리들 중에서만 선택해야 합니다."""
+                    },
+                    {
+                        "role": "user",
+                        "content": food_name
+                    }
+                ],
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "food_category_v2",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "main_category": {
+                                    "type": "string",
+                                    "enum": ["RICE", "NOODLE", "SOUP", "SIDE", "MAIN", "DESSERT"]
+                                },
+                                "sub_category": {
+                                    "type": "string",
+                                    "enum": [
+                                        # RICE
+                                        "WHITE_RICE", "MIXED_GRAIN_RICE", "FRIED_RICE", "SPECIAL_RICE",
+                                        # NOODLE
+                                        "COLD_NOODLE", "HOT_NOODLE", "STIR_FRIED_NOODLE", "SOUP_NOODLE",
+                                        # SOUP
+                                        "CLEAR_SOUP", "SPICY_SOUP", "STEW", "MEAT_SOUP", "FISH_SOUP",
+                                        # SIDE
+                                        "KIMCHI_VARIANT", "NAMUL", "PICKLED", "EGG_BASED", "TOFU_OR_BEAN", "SMALL_MEAT",
+                                        # MAIN
+                                        "MEAT", "POULTRY", "FISH", "FRIED", "STEAMED_OR_BOILED", "VEGETARIAN_MAIN",
+                                        # DESSERT
+                                        "FRUIT", "DAIRY", "BAKED", "BEVERAGE"
+                                    ]
+                                }
+                            },
+                            "required": ["main_category", "sub_category"],
+                            "additionalProperties": False
+                        }
+                    }
+                },
+                max_tokens=150
+            )
+            
+            return JsonResponse(json.loads(response.choices[0].message.content))
+            
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "올바르지 않은 JSON 형식입니다"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"error": "POST 요청만 허용됩니다"}, status=405)
+
+
+
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['food_name'],
+        properties={
+            'food_name': openapi.Schema(type=openapi.TYPE_STRING, description='음식 이름')
+        }
+    ),
+    responses={
+        200: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
                 'mealCategory': openapi.Schema(
                     type=openapi.TYPE_STRING,
                     enum=["RICE", "NOODLE", "SOUP", "SIDE", "MAIN", "DESSERT"]
